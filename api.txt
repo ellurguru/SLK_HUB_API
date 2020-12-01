@@ -1,0 +1,21 @@
+[Route("api/GetCustomers")]
+        [HttpGet]
+        public HttpResponseMessage GetCustomers()
+        {
+            using (SLKHUB_DBContext dbContext = new SLKHUB_DBContext())
+            {
+               var Customers= dbContext.Customers
+                                .Select(c => new {
+                                    year = c.Year_Of_Engagement,
+                                    name = c.Cust_Name,
+                                    image=c.Logo_Path,
+                                    slug=c.Cust_Name,
+                                    hover_text=c.Cust_Desc
+                                }).ToList();
+                return new HttpResponseMessage()
+                {
+                    Content = new StringContent(JArray.FromObject(Customers).ToString(), Encoding.UTF8, "application/json")
+                };
+
+            }
+        }
