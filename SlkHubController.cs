@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text;
 using System.Web.Http;
 using System.Web.Http.Description;
+using System.Web.Script.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SLK_HUB_WEBAPI.Models;
@@ -21,10 +22,17 @@ namespace AdminpageWebAPI.Controllers
         {
             using (SLKHUB_DBContext dbContext = new SLKHUB_DBContext())
             {
-                //return dbContext.Customers.ToList();
+               var Customers= dbContext.Customers
+                                .Select(c => new {
+                                    year = c.Year_Of_Engagement,
+                                    name = c.Cust_Name,
+                                    image=c.Logo_Path,
+                                    slug=c.Cust_Name,
+                                    hover_text=c.Cust_Desc
+                                }).ToList();
                 return new HttpResponseMessage()
                 {
-                    Content = new StringContent(JArray.FromObject(dbContext.Customers.ToList()).ToString(), Encoding.UTF8, "application/json")
+                    Content = new StringContent(JArray.FromObject(Customers).ToString(), Encoding.UTF8, "application/json")
                 };
 
             }
@@ -246,5 +254,122 @@ namespace AdminpageWebAPI.Controllers
                 return dbContext.Stotefiles.ToList();
             }
         }
+
+        [Route("api/GetCustomersById1/{id}")]
+        [HttpGet]
+        public HttpResponseMessage GetCustomersById1(int id)
+        {
+            using (SLKHUB_DBContext dbContext = new SLKHUB_DBContext())
+            {
+                //return dbContext.Customers.FirstOrDefault(e => e.Cust_Id == id);
+                Customer customer = dbContext.Customers.Find(id);
+                return new HttpResponseMessage()
+                {
+                    Content = new StringContent(JArray.FromObject(dbContext.Customers.Where(cd => cd.Cust_Id == id).ToList()).ToString(), Encoding.UTF8, "application/json")
+                };
+            }
+        }
+
+        [Route("api/GetCustomersData/{id}")]
+        [HttpGet]
+        public HttpResponseMessage GetCustomersData(int id)
+        {
+            using (SLKHUB_DBContext dbContext = new SLKHUB_DBContext())
+            {
+                CustomerModule objcust = new CustomerModule();
+                Customer Customers = dbContext.Customers.Where(cd => cd.Cust_Id == id).FirstOrDefault();
+                //List<object> d = new List<object>();
+                var documents = dbContext.Customer_Documents.Where(cd => cd.Cust_Id == id)
+                                .Select(c => new docs
+                                {
+                                    video = c.Doc_Path,
+                                    title = c.Doc_Name,
+                                    tag = c.Doc_Tags,
+                                });
+                objcust.docs = documents.ToList();
+
+                var value = dbContext.Customer_Journey.Where(cd => cd.Cust_Id == id)
+                               .Select(v => new values
+                               {
+                                   year = v.Journey_Year.ToString(),
+                                   value = v.Journey_Module,
+                                   about = v.Journey_Desc,
+                               });
+                objcust.values = value.ToList();
+                
+
+                var slk_team = dbContext.Customer_Project_Team
+                               .Select(c => new slk_team
+                               {
+                                   name = c.Name,
+                                   designation = c.Designation,
+                                   email = c.Email_Id,
+                                   contact = c.Phone.ToString(),
+                                   avatar = c.ProfilePic,
+                               });
+                objcust.slk_team = slk_team.ToList();
+
+                var client_team = dbContext.Customer_Project_Team
+                               .Select(c => new client_team
+                               {
+                                   name = c.Name,
+                                   designation = c.Designation,
+                                   email = c.Email_Id,
+                                   contact = c.Phone,
+                                   avatar = c.ProfilePic,
+                               });
+                objcust.client_team = client_team.ToList();
+
+                List<external_links> Objlinks = new List<external_links>();
+                external_links Objlink = new external_links();
+                Objlink.text = Customers.Website_Link;
+                Objlink.url = Customers.Website_Link;
+                Objlinks.Add(Objlink);
+
+                Objlink = new external_links();
+                Objlink.text = "Leadership Team";
+                Objlink.url = Customers.Leadership_Team_Link;
+                Objlinks.Add(Objlink);
+
+                Objlink = new external_links();
+                Objlink.text = "Products & Services";
+                Objlink.url = Customers.Products_Link;
+                Objlinks.Add(Objlink);
+
+                Objlink = new external_links();
+                Objlink.text = "Financials";
+                Objlink.url = Customers.Financials_Link;
+                Objlinks.Add(Objlink);
+
+                objcust.external_links = Objlinks;
+
+                detail objdetail = new detail();
+                objdetail.title = "Case Study: Inflation Model";
+                objdetail.type = "Type: New Solution/Application Key Words:";
+                objdetail.summary = "";
+                string[] str1;
+                str1=new string[] { "Procurement", "Forecast", "Data Analysis", "Reports", "Under Estimation" };
+                objdetail.keywords = str1;
+                
+                objcust.customer = Customers.Logo_Path;
+                objcust.solution = "Inflation Model";
+                objcust.year = "2001";
+                objcust.slk_champion = "Nagesh KP";
+                objcust.slug = "emersion_1";
+                objcust.title = "Emersion";
+                objcust.detail = objdetail;
+                objcust.timeline = new string[] {"Customer since - 1998", "Industry - Automation-Solutions","Projects 1 - Automation Engineering","Projects 2 Industrial Wireless Technology","Award - Operational Excellence" };
+                var json = new JavaScriptSerializer().Serialize(objcust);
+                return new HttpResponseMessage()
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+
+            }
+
+
+        }
+
+       
     }
 }
