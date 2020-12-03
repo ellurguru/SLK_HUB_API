@@ -22,14 +22,15 @@ namespace AdminpageWebAPI.Controllers
         {
             using (SLKHUB_DBContext dbContext = new SLKHUB_DBContext())
             {
-               var Customers= dbContext.Customers
-                                .Select(c => new {
-                                    year = c.Year_Of_Engagement,
-                                    name = c.Cust_Name,
-                                    image=c.Logo_Path,
-                                    slug=c.Cust_Name,
-                                    hover_text=c.Cust_Desc
-                                }).ToList();
+                var Customers = dbContext.Customers
+                                 .Select(c => new
+                                 {
+                                     year = c.Year_Of_Engagement,
+                                     name = c.Cust_Name,
+                                     image = c.Logo_Path,
+                                     slug = c.Cust_Name,
+                                     hover_text = c.Cust_Desc
+                                 }).ToList();
                 return new HttpResponseMessage()
                 {
                     Content = new StringContent(JArray.FromObject(Customers).ToString(), Encoding.UTF8, "application/json")
@@ -141,7 +142,7 @@ namespace AdminpageWebAPI.Controllers
         {
             using (SLKHUB_DBContext dbContext = new SLKHUB_DBContext())
             {
-               return dbContext.Customer_Documents.Where(cd => cd.Cust_Id == cust_id).ToList();   
+                return dbContext.Customer_Documents.Where(cd => cd.Cust_Id == cust_id).ToList();
             }
         }
 
@@ -241,7 +242,7 @@ namespace AdminpageWebAPI.Controllers
         {
             using (SLKHUB_DBContext dbContext = new SLKHUB_DBContext())
             {
-                return dbContext.Subcategories.Where(s=>s.Category_Id==Category_Id).ToList();
+                return dbContext.Subcategories.Where(s => s.Category_Id == Category_Id).ToList();
             }
         }
 
@@ -278,7 +279,6 @@ namespace AdminpageWebAPI.Controllers
             {
                 CustomerModule objcust = new CustomerModule();
                 Customer Customers = dbContext.Customers.Where(cd => cd.Cust_Id == id).FirstOrDefault();
-                //List<object> d = new List<object>();
                 var documents = dbContext.Customer_Documents.Where(cd => cd.Cust_Id == id)
                                 .Select(c => new docs
                                 {
@@ -296,7 +296,7 @@ namespace AdminpageWebAPI.Controllers
                                    about = v.Journey_Desc,
                                });
                 objcust.values = value.ToList();
-                
+
 
                 var slk_team = dbContext.Customer_Project_Team
                                .Select(c => new slk_team
@@ -343,33 +343,83 @@ namespace AdminpageWebAPI.Controllers
 
                 objcust.external_links = Objlinks;
 
-                detail objdetail = new detail();
-                objdetail.title = "Case Study: Inflation Model";
-                objdetail.type = "Type: New Solution/Application Key Words:";
-                objdetail.summary = "";
-                string[] str1;
-                str1=new string[] { "Procurement", "Forecast", "Data Analysis", "Reports", "Under Estimation" };
-                objdetail.keywords = str1;
-                
-                objcust.customer = Customers.Logo_Path;
-                objcust.solution = "Inflation Model";
-                objcust.year = "2001";
-                objcust.slk_champion = "Nagesh KP";
-                objcust.slug = "emersion_1";
-                objcust.title = "Emersion";
-                objcust.detail = objdetail;
-                objcust.timeline = new string[] {"Customer since - 1998", "Industry - Automation-Solutions","Projects 1 - Automation Engineering","Projects 2 Industrial Wireless Technology","Award - Operational Excellence" };
+                //detail objdetail = new detail();
+                //objdetail.title = "Case Study: Inflation Model";
+                //objdetail.type = "Type: New Solution/Application Key Words:";
+                //objdetail.summary = "";
+                //string[] str1;
+                //str1 = new string[] { "Procurement", "Forecast", "Data Analysis", "Reports", "Under Estimation" };
+                //objdetail.keywords = str1;
+
+                objcust.customer = "../" + Customers.Logo_Path;
+                //objcust.solution = "Inflation Model";
+                //objcust.year = "2001";
+                //objcust.slk_champion = "Nagesh KP";
+                objcust.slug = Customers.Cust_Name;
+                objcust.title = Customers.Cust_Name;
+                //objcust.detail = objdetail;
+                objcust.timeline = new string[] { "Customer since - 1998", "Industry - Automation-Solutions", "Projects 1 - Automation Engineering", "Projects 2 Industrial Wireless Technology", "Award - Operational Excellence" };
                 var json = new JavaScriptSerializer().Serialize(objcust);
                 return new HttpResponseMessage()
                 {
                     Content = new StringContent(json, Encoding.UTF8, "application/json")
                 };
-
             }
+        }
 
+        [Route("api/GetEmployeeJourney")]
+        [HttpGet]
+        public HttpResponseMessage GetEmployeeJourney()
+        {
+            using (SLKHUB_DBContext dbContext = new SLKHUB_DBContext())
+            {
+                List<EmployeeJourney> objourney = new List<EmployeeJourney>();
+                var journey = (from ej in dbContext.Employee_Journey_Path
+                               join cd in dbContext.Customer_Documents on ej.Employee_Id equals cd.Employee_Id
+                               select new EmployeeJourney
+                               {
+                                   empid = ej.Employee_Id,
+                                   name = ej.Employee_Name,
+                                   image = ej.Image,
+                                   video_link = cd.Doc_Path,
+                                   video_description = cd.Doc_Name
+                               }).Distinct().ToList();
+
+                foreach (var p in journey)
+                {
+                    EmployeeJourney obj = new EmployeeJourney();
+                    obj.empid = p.empid;
+                    obj.name = p.name;
+                    obj.image = p.image;
+                    obj.video_link = p.video_link;
+                    obj.video_description = p.video_description;
+                    obj.records = dbContext.Employee_Journey_Path.Where(j => j.Employee_Id == p.empid)
+                    .Select(d => new records
+                    {
+                        highlight = d.Highlight,
+                        star = d.Star,
+                        title = d.Title,
+                        year = d.JourneyYear
+                    }).ToList();
+
+                    objourney.Add(obj);
+
+                }
+
+                var json = new JavaScriptSerializer().Serialize(objourney);
+                return new HttpResponseMessage()
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+            }
+        }
+
+        [Route("api/GetImpactData")]
+        [HttpGet]
+        public HttpResponseMessage GetImpactData(int id)
+        {
 
         }
 
-       
     }
 }
